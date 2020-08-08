@@ -1,0 +1,22 @@
+buildscript {
+    apply from: 'mvvm-config.gradle'
+    apply from: 'MVVMArchitecture/dependencies.gradle'
+
+    addRepository(repositories)
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath Deps.kotlinPlugin
+        classpath Deps.natigationSafeArgsPlugin
+
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+    }
+}
+
+allprojects {
+    addRepository(repositories)
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
