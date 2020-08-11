@@ -1,0 +1,1 @@
+本仓库是 [MVVMArchitecture](https://github.com/imyyq-star/MVVMArchitecture) 框架用来同步发布到 jitpack 的。最新代码详见 MVVMArchitecture 框架。
