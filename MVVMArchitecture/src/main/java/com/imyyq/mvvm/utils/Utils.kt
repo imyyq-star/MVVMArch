@@ -39,18 +39,32 @@ object Utils {
      */
     @JvmStatic
     fun multiClickListener(view: View, frequency: Int, listener: (() -> Unit)? = null) {
-        view.setTag(R.id.multiClickFrequency, 0)
+        val startIndex = 1
+        val interval = 400
+        view.setTag(R.id.multiClickFrequency, startIndex)
         view.setTag(R.id.multiClickLastTime, System.currentTimeMillis())
+
         view.setOnClickListener {
-            val f = view.getTag(R.id.multiClickFrequency) as Int
-            if (f == frequency) {
-                view.setTag(R.id.multiClickFrequency, 0)
+            var f = view.getTag(R.id.multiClickFrequency) as Int
+
+            // 点击间隔超时，重置次数
+            if (System.currentTimeMillis() - (view.getTag(R.id.multiClickLastTime) as Long) > interval) {
+                view.setTag(R.id.multiClickFrequency, startIndex)
+                f = startIndex
+            }
+
+            // 第一次点击，重置时间
+            if (f == startIndex) {
                 view.setTag(R.id.multiClickLastTime, System.currentTimeMillis())
+            }
+
+            if (f == frequency) {
+                view.setTag(R.id.multiClickFrequency, startIndex)
 
                 listener?.invoke()
             } else {
                 val lastTime = view.getTag(R.id.multiClickLastTime) as Long
-                if (System.currentTimeMillis() - lastTime < 400) {
+                if (System.currentTimeMillis() - lastTime < interval) {
                     view.setTag(R.id.multiClickFrequency, f + 1)
                 }
                 view.setTag(R.id.multiClickLastTime, System.currentTimeMillis())
@@ -58,13 +72,33 @@ object Utils {
         }
     }
 
+    /**
+     * 系统分享文本的 Intent
+     */
+    fun shareTextIntent(text: String): Intent {
+        val sendIntent = Intent()
+        sendIntent.action = Intent.ACTION_SEND
+        sendIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        sendIntent.putExtra(Intent.EXTRA_TEXT, text)
+        sendIntent.type = "text/plain"
+        return sendIntent
+    }
+
+    /**
+     * 创建 Intent 实例，并把参数 [map] [bundle] 放进去
+     */
     fun getIntentByMapOrBundle(
-        context: Context?,
-        clz: Class<out Activity>?,
+        context: Context? = null,
+        clz: Class<out Activity>? = null,
         map: Map<String, *>? = null,
         bundle: Bundle? = null
     ): Intent {
-        val intent = Intent(context, clz)
+        val intent =
+            if (context != null && clz != null)
+                Intent(context, clz)
+            else
+                Intent()
+
         map?.forEach { entry ->
             @Suppress("UNCHECKED_CAST")
             when (val value = entry.value) {
@@ -138,27 +172,38 @@ object Utils {
                     val any = if (value.isNotEmpty()) {
                         value[0]
                     } else null
-                    if (any is String) {
-                        intent.putExtra(entry.key, value as ArrayList<String>)
-                    } else if (any is Parcelable) {
-                        intent.putExtra(entry.key, value as ArrayList<Parcelable>)
-                    } else if (any is Int) {
-                        intent.putExtra(entry.key, value as ArrayList<Int>)
-                    } else if (any is CharSequence) {
-                        intent.putExtra(entry.key, value as ArrayList<CharSequence>)
-                    } else {
-                        throw RuntimeException("不支持此类型 $value")
+                    when (any) {
+                        is String -> {
+                            intent.putExtra(entry.key, value as ArrayList<String>)
+                        }
+                        is Parcelable -> {
+                            intent.putExtra(entry.key, value as ArrayList<Parcelable>)
+                        }
+                        is Int -> {
+                            intent.putExtra(entry.key, value as ArrayList<Int>)
+                        }
+                        is CharSequence -> {
+                            intent.putExtra(entry.key, value as ArrayList<CharSequence>)
+                        }
+                        else -> {
+                            throw RuntimeException("不支持此类型 $value")
+                        }
                     }
                 }
                 is Array<*> -> {
-                    if (value.isArrayOf<String>()) {
-                        intent.putExtra(entry.key, value as Array<String>)
-                    } else if (value.isArrayOf<Parcelable>()) {
-                        intent.putExtra(entry.key, value as Array<Parcelable>)
-                    } else if (value.isArrayOf<CharSequence>()) {
-                        intent.putExtra(entry.key, value as Array<CharSequence>)
-                    } else {
-                        throw RuntimeException("不支持此类型 $value")
+                    when {
+                        value.isArrayOf<String>() -> {
+                            intent.putExtra(entry.key, value as Array<String>)
+                        }
+                        value.isArrayOf<Parcelable>() -> {
+                            intent.putExtra(entry.key, value as Array<Parcelable>)
+                        }
+                        value.isArrayOf<CharSequence>() -> {
+                            intent.putExtra(entry.key, value as Array<CharSequence>)
+                        }
+                        else -> {
+                            throw RuntimeException("不支持此类型 $value")
+                        }
                     }
                 }
                 else -> {
